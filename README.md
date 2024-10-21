@@ -1,13 +1,4 @@
 Nota Bene
-Read this entire page twice before you get started.
-
-Practicums have a due date different than assignments. The due date is Friday, March 3 at 11:59pm ET (the day before Spring Recess). Late submissions are accepted (with the usual penalty of 2.5% per day late) until the end of Spring Recess on March 12 at 11:59pm ET. No submissions are accepted after that. Note that the availability of the instructional staff during recess is very limited, so be sure to plan for that. 
-
-Work on the practicum for at least three hours every day and use the time during the week prior to the practicum to start working on it, especially the configuration of the MySQL Server and the loading of the data.
-
-A gentle reminder that the average of both practicums must be above 70% to pass this course, so be sure to complete on time and seek help right away. Do not procrastinate -- things that appear simple often take more time than expected and, of course, programming is fraught with potholes on the road to success. So plan accordingly.
-
-The average time to complete the practicum is 15-25 hours. Do not wait to start. Seek help early. Submit often and as soon as you have enough code that works. We will only grade the last submission. Check your submission before you submit and after.
 
 Overview
 In this practicum you will build a database that can be used to analyze bird strikes on aircraft. For an existing data set from the FAA [1], you will build a logical data model, a relational schema, realize the relational schema in MySQL/MariaDB, load data into the database, execute SQL queries, a finally perform some simple analysis of the data.
@@ -17,15 +8,16 @@ Use the provided time estimates for each tasks to time-box your time. Seek assis
 Learning Objectives
 In this practicum you will learn how to:
 
-install/procure MySQL or MariaDB
-connect to MySQL/MariaDB from R in an R Notebook
-implement a relational schema for an existing data set
-load data from CSV files into a relational database through R
-execute SQL queries against a MySQL/MariaDB database through R
-perform simple analytics in R
-identify and resolve programming errors
-look up details for R, SQL, and MySQL/MariaDB
-time-box work
+    install/procure MySQL or MariaDB
+    connect to MySQL/MariaDB from R in an R Notebook
+    implement a relational schema for an existing data set
+    load data from CSV files into a relational database through R
+    execute SQL queries against a MySQL/MariaDB database through R
+    perform simple analytics in R
+    identify and resolve programming errors
+    look up details for R, SQL, and MySQL/MariaDB
+    time-box work
+    
 Format
 Complete in pairs or individually; working in pairs is not required. We do not pair up students; finding a partner is the student's responsibility.
 Add both team members as authors to the submission in the R Notebook and in the submission comments, but only one person needs to make a submission. Both team members will receive the same grade.
