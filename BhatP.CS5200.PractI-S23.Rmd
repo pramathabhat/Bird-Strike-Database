@@ -1,0 +1,428 @@
+---
+title: "Practicum I CS5200"
+author: "Pramatha Bhat(bhat.pra@northeastern.edu) & Harshitha Prabhu(prabhu.h@northeastern.edu)"
+date: "Spring 2023"
+output: pdf_document
+---
+
+
+## Connect to Database
+```{r databaseConnection}
+library(RMySQL)
+db_user <- 'root'
+db_password <- 'Appleharshi123$'
+db_name <- 'MYSQL'
+db_host <- 'localhost'
+db_port <- 3306
+mydb <-  dbConnect(MySQL(), user = db_user, password = db_password,
+                 dbname = db_name, host = db_host, port = db_port)
+mydb
+```
+
+## Create Database
+
+## drop incidents table
+```{sql connection=mydb, name="dropIncidentTableIfExists"}
+DROP TABLE IF EXISTS incidents
+```
+
+## Create incdidents table
+```{sql connection=mydb, name="createIncidentsTable"}
+CREATE TABLE incidents (
+    rid INTEGER PRIMARY KEY,
+    `dep.date` DATE,
+    origin INTEGER,
+    airline INTEGER,
+    aircraft TEXT,
+    `flight.phase` ENUM('takeoff', 'landing', 'inflight', 'unknown'),
+    altitude INTEGER CHECK (altitude >= 0),
+    conditions INTEGER,
+    warned BOOLEAN
+);
+```
+
+## drop airports table
+```{sql connection=mydb, name="dropAirportTableIfExists"}
+DROP TABLE IF EXISTS airports
+```
+
+## Create airports table
+```{sql connection=mydb, name="createAirportTable"}
+CREATE TABLE airports (
+    aid INTEGER PRIMARY KEY AUTO_INCREMENT,
+    airportName TEXT,
+    airportCode TEXT,
+    state TEXT
+);
+```
+
+## Add origin foreign key to Incidents table
+```{sql connection=mydb, name = "addOriginForeignKeyToIncidentsTable"}
+ALTER TABLE incidents
+ADD FOREIGN KEY (origin) REFERENCES airports(aid);
+```
+## drop conditions table
+```{sql connection=mydb, name="dropConditionsTableIfExists"}
+DROP TABLE IF EXISTS conditions
+```
+
+## Create conditions table
+```{sql connection=mydb, name="createConditionsTable"}
+CREATE TABLE conditions (
+  cid INTEGER PRIMARY KEY AUTO_INCREMENT,
+  `condition` TEXT,
+  explanation TEXT
+);
+```
+
+## Add conditions foreign key to Incidents table
+```{sql connection=mydb, name="addConditionForeignKeyToIncidentsTable"}
+ALTER TABLE incidents
+ADD FOREIGN KEY (conditions) REFERENCES conditions(cid);
+```
+## Drop airlines table
+```{sql connection=mydb, name="dropAirportTableIfExists"}
+DROP TABLE IF EXISTS airlines
+```
+
+## Create airlines table
+```{sql connection=mydb, name="createAirlinesTable"}
+CREATE TABLE airlines (
+    eid INTEGER PRIMARY KEY AUTO_INCREMENT,
+    airlineName TEXT,
+    airlineCode TEXT,
+    flag TEXT
+);
+```
+
+## Add airline foreign key to Incidents table
+```{sql connection=mydb, name="addAirlineForeignKeyToIncidentsTable"}
+ALTER TABLE incidents
+ADD FOREIGN KEY (airline) REFERENCES airlines(eid);
+```
+## display incident table structure
+```{sql connection=mydb, eval='F', name="structureOfIncidentsTable"}
+DESCRIBE incidents
+```
+## display airports table structure
+```{sql connection=mydb, eval='F', name="structureOfAirportsTable"}
+DESCRIBE airports
+```
+## display conditions table structure
+```{sql connection=mydb, eval='F', name="structureOfConditionsTable"}
+DESCRIBE conditions
+```
+## display airlines table structure
+```{sql connection=mydb, eval='F', name="structureOfAirlinesTable"}
+DESCRIBE airlines
+```
+
+## Load BirdStrikesData.csv
+```{r loadCSVFile}
+library(readr)
+bds.raw <- read_csv("BirdStrikesData-v2.csv",show_col_types = FALSE)
+bds.raw
+```
+
+## Get conditions from csv file
+```{r getConditionsFromCSV}
+library(RMySQL)
+library(sqldf)
+options(sqldf.driver = "SQLite")
+conditions<-sqldf('select distinct sky_conditions FROM `bds.raw`')
+conditions<-na.omit(conditions)
+conditions[nrow(conditions)+1,]=c("unknown")
+conditions
+```
+
+# Get airport details from the csv file BirdStrikesData.csv
+```{r getAirportDetailsFromCSV}
+options(sqldf.driver = "SQLite")
+airport_details<-sqldf('select distinct airport, origin FROM `bds.raw`')
+airport_details<-na.omit(airport_details)
+airport_details[nrow(airport_details)+1,]=c("unknown")
+airport_details
+
+```
+
+# Get airline details from the csv file BirdStrikesData.csv
+```{r getAirlineDetailsFromCSV}
+options(sqldf.driver = "SQLite")
+airline_details<-sqldf('select distinct airline FROM `bds.raw`')
+airline_details<-na.omit(airline_details)
+airline_details[nrow(airline_details)+1,]=c("unknown")
+airline_details
+
+```
+
+## get the flight details from the csv file BirdStrikesData.csv
+```{r getFlightDetailsFromCSV}
+options(sqldf.driver = "SQLite")
+flight_details<-sqldf('select distinct flight_phase FROM `bds.raw`')
+flight_details<-na.omit(flight_details)
+flight_details[nrow(flight_details)+1,]=c("unknown")
+flight_details
+
+```
+
+## get the incident details from the csv file BirdStrikesData.csv
+```{r getIncidentDetailsFromCSV}
+options(sqldf.driver = "SQLite")
+# Read data from the raw table
+incident_details <- sqldf('select distinct rid, flight_date, origin, airline, aircraft, flight_phase, altitude_ft, sky_conditions, heavy_flag FROM `bds.raw`')
+for (i in 1:nrow(incident_details)) {
+if(is.na(incident_details[i,3])){
+incident_details[i,3] = "unknown"
+ }
+if(is.na(incident_details[i,4])){
+ incident_details[i,4] = "unknown"
+ }
+}
+incident_details<-na.omit(incident_details)
+# Print the filtered data
+incident_details
+```
+
+## insert rows from csv to airlines table
+```{r insertIntoAirlines}
+insert_airlines <- function() {
+  
+  for (i in 1:nrow(airline_details)) {
+    airline<-paste0('"',airline_details[i,1],'"')
+  cmd<-paste0('insert into airlines(airlineName) values (',airline,')')
+      dbSendQuery(mydb,cmd)
+  }
+  
+}
+insert_airlines ()
+```
+
+## displaying 10 rows of airlines table
+```{sql connection=mydb, name="displayAirlines"}
+select * from airlines limit 10;
+```
+
+## insert rows into conditions table
+```{r insertIntoConditions}
+insert_conditions <- function() {
+  
+  for (i in 1:nrow(conditions)) {
+    condition<-paste0('"',conditions[i,1],'"')
+  cmd<-paste0('insert into conditions(`condition`) values (',condition,')')
+      dbSendQuery(mydb,cmd)
+  }
+  
+}
+insert_conditions ()
+```
+
+## displaying 10 rows of conditions table
+```{sql connection=mydb, name="displayConditions"}
+select * from conditions limit 10;
+```
+
+## insert into airports table
+```{r insertIntoAirports}
+insert_airport <- function() {
+  
+  for (i in 1:nrow(airport_details)) {
+    airport<-paste0('"',airport_details[i,1],'"')
+     if(is.na(airport_details[i,2])) {
+        state<-'NULL'
+      } else {
+      state<-paste0('"',airport_details[i,2],'"')
+      }
+  cmd<-paste0('insert into airports(airportName,state) values (',airport,',',state,')')
+      dbSendQuery(mydb,cmd)
+  }
+  
+}
+insert_airport ()
+```
+
+
+## displaying 10 rows of airports table
+```{sql connection=mydb, name="displayAirports"}
+select * from airports limit 10;
+```
+## insert rows into incidents table
+```{r insertIntoIncidents}
+library(RMySQL)
+insert_conditions <- function() {
+  for (i in 1:(nrow(incident_details)-1)) {
+   id<-paste0('"',incident_details[i,1],'"')
+    query <- paste0('select aid from airports where state=','"',incident_details[i,3],'"')
+    airport_result <- dbSendQuery(mydb, query)
+    airport_data <- dbFetch(airport_result)
+    airport <- airport_data[1, 1]
+    date<-incident_details[i,2]
+    
+    if(is.na(date)) 
+      {
+      date<-'NULL'
+      } else 
+        {
+        date<-strsplit(date,"/")
+        date<-paste(substr(date[[1]][[3]],1,4),date[[1]][[1]],date[[1]][[2]], sep = "-")
+        date<-paste0('"',date,'"')
+      }
+        query<-paste0('select eid from airlines where airlineName=','"',incident_details[i,4],'"')
+        airlines_result <- dbSendQuery(mydb, query)
+    airlines_result <- dbFetch(airlines_result)
+    airline <- airlines_result[1, 1]
+
+query<-paste0('select cid from conditions where `condition`=','"',incident_details[i,8],'"')
+        conditions_result <- dbSendQuery(mydb, query)
+    conditions_result <- dbFetch(conditions_result)
+    condition <- conditions_result[1, 1]
+    
+      if(is.na(incident_details[i,5])){
+         aircraft<-'NULL'
+      }else
+        {      
+      aircraft<-paste0('"',incident_details[i,5],'"')}
+
+    if(incident_details[i,9] == "Yes" ){
+         incident_boolean = 1
+      }else
+        {  
+          incident_boolean = 0
+        }
+    if(incident_details[i,6] == "Take-off run" ||  incident_details[i,6] == "Climb"){
+      flight_phase = "\'takeoff\'"
+    }
+    else if(incident_details[i,6] == "Landing Roll" || incident_details[i,6] == "Descent"){
+      flight_phase = "\'landing\'"
+    }
+    else if(incident_details[i,6] == "Approach" || incident_details[i,6] == "Taxi"|| incident_details[i,6] == "Parked"){
+      flight_phase = "\'inflight\'"
+    }
+    else{
+      flight_phase = "\'unknown\'"
+    }
+      cmd<-paste0('insert into incidents(rid, `dep.date`, origin, airline, aircraft, `flight.phase`, altitude, conditions, warned) values (',id,',',date,',',airport,',',airline,',',aircraft,',',flight_phase,',',incident_details[i,7],',',condition,',',incident_boolean,')')
+    dbSendQuery(mydb, cmd)
+    
+  }
+}
+insert_conditions()
+```
+
+
+## display 10 rows of incidents table
+```{sql connection=mydb, name="displayIncidents"}
+select * from incidents limit 10;
+```
+
+## finding the 10 states with greatest number of bird strike incidents
+```{sql connection=mydb, name="statesWithGreatestNumOfIncidents"} 
+SELECT origin, COUNT(rid) as count FROM incidents GROUP BY origin ORDER BY count DESC LIMIT 10; 
+```
+## finding the airlines that have an above average number bird strike incidents.
+```{sql connection=mydb, name="aboveAvgNumOfBirdStrikeIncidents"}
+SELECT a.airlineName, COUNT(*) AS num_incidents
+FROM incidents i
+JOIN airlines a ON i.airline = a.eid
+GROUP BY a.airlineName
+HAVING COUNT(*) > (
+    SELECT AVG(num_incidents)
+    FROM (
+        SELECT COUNT(*) AS num_incidents
+        FROM incidents
+        GROUP BY airline
+    ) AS avg_incidents
+)
+```
+## finding the number of bird strike incidents by month and by flight phase
+```{r numberOfBirdStrikesByMonthAndFlightPhase}
+cmd<-'SELECT distinct MONTH(`dep.date`) AS month, `flight.phase` as flight_phase, COUNT(*) AS num_incidents FROM incidents GROUP BY MONTH(`dep.date`), `flight.phase` ORDER BY month, `flight.phase`'
+numOfIncidentsByMonth <- dbGetQuery(mydb, cmd)
+head(numOfIncidentsByMonth, 6)
+```
+## Building a scatter plot that plots month along the x-axis versus number of incidents
+```{r plotMonthVersusBirdIncidents}
+plot(x = numOfIncidentsByMonth$month,
+     y = numOfIncidentsByMonth$num_incidents,
+     xlab = "Month", ylab = "No of Bird Strikes",
+     main = "Month vs Number of Bird Strike Incidents",
+     col = c("blue","yellow","grey"), pch=19)
+     
+text(numOfIncidentsByMonth$month, 
+     numOfIncidentsByMonth$num_incidents, 
+     labels=numOfIncidentsByMonth$num_incidents, 
+     cex = 0.5, pos = 4)
+legend(x="topright", legend=unique(numOfIncidentsByMonth$flight_phase),
+       col = c("blue","yellow","grey"), pch=19)
+```
+# Drop the procedure if it already exists
+```{sql connection=mydb, name="dropProcedure"}
+DROP PROCEDURE IF EXISTS addNewIncident;
+```
+
+
+# Stored procedure to create new incident
+```{sql connection=mydb, name="createAddNewIncidentProcedure"}
+CREATE PROCEDURE addNewIncident (
+  IN rid INTEGER,
+  IN dep_date DATE, 
+  IN origin INTEGER, 
+  IN airline_name TEXT, 
+  IN airline_code TEXT, 
+  IN aircraft TEXT, 
+  IN flight_phase ENUM('takeoff', 'landing', 'inflight', 'unknown'), 
+  IN altitude INTEGER, 
+  IN `condition` TEXT, 
+  IN explanation TEXT, 
+  IN airport_name TEXT, 
+  IN airport_code TEXT,
+  IN state TEXT,
+  IN warned BOOLEAN
+)
+BEGIN
+  DECLARE airline_id INTEGER;
+  DECLARE airport_id INTEGER;
+  DECLARE condition_id INTEGER;
+
+  SELECT eid INTO airline_id FROM airlines WHERE airlineName = airline_name AND airlineCode = airline_code limit 1;
+
+  IF airline_id IS NULL THEN
+    INSERT INTO airlines (airlineName, airlineCode) VALUES (airline_name, airline_code);
+    SET airline_id = LAST_INSERT_ID();
+  END IF;
+
+  SELECT aid INTO airport_id FROM airports WHERE airportCode = airport_code limit 1;
+
+  IF airport_id IS NULL THEN
+    INSERT INTO airports (airportName, airportCode, state) VALUES (airport_name, airport_code, state);
+    SET airport_id = LAST_INSERT_ID();
+  END IF;
+
+  SELECT cid INTO condition_id FROM conditions WHERE `condition` = `condition` limit 1;
+
+  IF condition_id IS NULL THEN
+    INSERT INTO conditions (`condition`, explanation) VALUES (`condition`, explanation);
+    SET condition_id = LAST_INSERT_ID();
+  END IF;
+
+  INSERT INTO incidents (rid, `dep.date`, origin, airline, aircraft, `flight.phase`, altitude, conditions, warned)
+  VALUES (rid, dep_date, origin, airline_id, aircraft, flight_phase, altitude, condition_id, warned);
+  
+END
+```
+
+## Call addNewIncident Procedure with test values
+```{sql connection=mydb, name="callAddNewIncidentProcedure"}
+CALL addNewIncident(319594,'2022-03-03', 123, 'Delta Airlines', 'DL', 'Boeing 737', 'takeoff', 10000, 'Bird strike', 'Birds collided with engine', 'Kempegowda Vimana Nildana', 'BLR', 'Bangalore', TRUE);
+```
+
+## Testing newly added row by the procedure.
+```{r testNewlyAddedRow}
+result <- dbGetQuery(mydb, "SELECT * FROM incidents WHERE rid=319594")
+print(result)
+
+```
+
+
+```{r disconnectDatabase}
+dbDisconnect(mydb)
+```
