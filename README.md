@@ -44,9 +44,9 @@ Before you start, read all of the questions. Inspect the CSV data file that you 
 
 All R and SQL code blocks must be named, as shown in the example below. This is necessary so that you can reference your code blocks in the self-evaluation rubric to be filled out at the end of the practicum. The names of code blocks must be unique.
 
-```{r nameOfRCodeBlock, eval = T, warning = F}
+```{r nameOfRCodeBlock, eval = T, warning = F}```
 
-```{sql nameOfSQLCodeBlock, connection = xDB}
+```{sql nameOfSQLCodeBlock, connection = xDB}```
 You may add any additional block parameters as needed.
 
 Use functions to structure your code so that it becomes more readable and easier to develop and debug. Use headers to segment your notebook and add explanations as to what each code block means. Follow common coding practices and format your code so it is readable, and use functions to break down complex code.
